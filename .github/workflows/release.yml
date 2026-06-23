@@ -229,10 +229,42 @@ jobs:
             build/packages/*.zip
             build/packages/fdx-natives-manifest.json
           if-no-files-found: error
+      - name: Compute release metadata
+        id: release_metadata
+        shell: bash
+        env:
+          IS_TAG: ${{ startsWith(github.ref, 'refs/tags/') }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          build_date="$(date -u +'%Y%m%d-%H%M%S')"
+          readable_date="$(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+          if [[ "$IS_TAG" == "true" ]]; then
+            tag_name="$REF_NAME"
+            release_name="$REF_NAME"
+          else
+            tag_name="build-${build_date}-run-${GITHUB_RUN_NUMBER}"
+            release_name="fdx-natives ${readable_date} (run ${GITHUB_RUN_NUMBER})"
+          fi
+          {
+            echo "tag_name=$tag_name"
+            echo "release_name=$release_name"
+            echo "body_path=$RUNNER_TEMP/fdx-natives-release-notes.md"
+          } >> "$GITHUB_OUTPUT"
+          {
+            echo "fdx-natives build ${GITHUB_RUN_NUMBER}"
+            echo
+            echo "UTC build date: ${readable_date}"
+            echo "Commit: ${GITHUB_SHA}"
+            echo "Workflow run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          } > "$RUNNER_TEMP/fdx-natives-release-notes.md"
       - name: Publish GitHub release
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/master'
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.release_metadata.outputs.tag_name }}
+          name: ${{ steps.release_metadata.outputs.release_name }}
+          target_commitish: ${{ github.sha }}
+          body_path: ${{ steps.release_metadata.outputs.body_path }}
           files: |
             build/packages/*.zip
             build/packages/fdx-natives-manifest.json

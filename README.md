@@ -56,8 +56,10 @@ Android and Web CI toolchain versions are read from `fdx-natives.toml` through
 `printNativeDepsConfig`; update those pins with `updateToolchainPin` instead of
 editing workflow version strings.
 
-Tag pushes matching `v*` also publish the package ZIPs and release manifest to a
-GitHub Release.
+Successful `master` builds also publish the package ZIPs and release manifest
+to a date-identifiable GitHub Release tagged like
+`build-YYYYMMDD-HHMMSS-run-N`. Tag pushes matching `v*` publish to the pushed
+tag instead.
 
 ## Updating Pins
 
