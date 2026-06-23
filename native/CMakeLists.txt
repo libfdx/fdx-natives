@@ -144,6 +144,7 @@ add_custom_target(stage_fdx_natives
     COMMAND "${CMAKE_COMMAND}" -E copy_directory "${FDX_NATIVES_FREETYPE_SOURCE_DIR}/include" "${FDX_NATIVES_STAGE_DIR}/include/freetype2"
     COMMAND "${CMAKE_COMMAND}" -E copy_directory "${FDX_NATIVES_DAWN_SOURCE_DIR}/include" "${FDX_NATIVES_STAGE_DIR}/include/dawn/include"
     COMMAND "${CMAKE_COMMAND}" -E copy_directory "${FDX_NATIVES_DAWN_SOURCE_DIR}/src/tint" "${FDX_NATIVES_STAGE_DIR}/include/dawn/src/tint"
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory "${FDX_NATIVES_DAWN_SOURCE_DIR}/src/utils" "${FDX_NATIVES_STAGE_DIR}/include/dawn/src/utils"
     COMMAND "${CMAKE_COMMAND}" -E copy_directory "${CMAKE_BINARY_DIR}/gen" "${FDX_NATIVES_STAGE_DIR}/include/dawn-gen"
     COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_CURRENT_BINARY_DIR}/fdx-natives-targets.cmake" "${FDX_NATIVES_TARGETS_FILE}"
     DEPENDS ${FDX_NATIVES_REQUIRED_TARGETS}
