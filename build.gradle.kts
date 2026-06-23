@@ -497,10 +497,9 @@ fun registerNativeTarget(target: NativeTarget): NativeTaskSet {
     return NativeTaskSet(buildTask, smokeTask, packageTask)
 }
 
-val packageVersion = nativeConfig.packageConfig.version
 val cmakeRoot = layout.buildDirectory.dir("cmake").get().asFile
 val stageRoot = layout.buildDirectory.dir("stage").get().asFile
-val packagePrefix = "fdx-natives-$packageVersion"
+val packagePrefix = "fdx-natives"
 val androidPackageClassifier = "android-ndk${nativeConfig.android.ndkVersion.substringBefore('.')}-minsdk${nativeConfig.android.minSdk}"
 val androidNdk = androidNdkDirectory()
 val androidEnabled = hostOs() == "linux" && androidNdk != null
@@ -544,7 +543,7 @@ val webTarget = NativeTarget(
     classifier = "web-emscripten-${nativeConfig.web.emscriptenVersion}",
     stageDirectory = File(stageRoot, "web-emscripten-${nativeConfig.web.emscriptenVersion}"),
     buildDirectory = File(cmakeRoot, "web-emscripten-${nativeConfig.web.emscriptenVersion}"),
-    packageFileName = "$packagePrefix-web-emscripten-${nativeConfig.web.emscriptenVersion}.zip",
+    packageFileName = "$packagePrefix-web-emscripten.zip",
     enabledOnHost = commandExists("emcmake"),
     configurePrefix = executableCommand("emcmake")
 )
@@ -561,7 +560,7 @@ val androidAbiTaskSets = listOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64").map
         classifier = "$androidPackageClassifier-$abi",
         stageDirectory = File(stageRoot, "$androidPackageClassifier/android/$abi"),
         buildDirectory = File(cmakeRoot, "$androidPackageClassifier-$abi"),
-        packageFileName = "$packagePrefix-$androidPackageClassifier.zip",
+        packageFileName = "$packagePrefix-android-$abi.zip",
         enabledOnHost = androidEnabled,
         configureArguments = listOf(
             "-DCMAKE_TOOLCHAIN_FILE=${androidNdk?.resolve("build/cmake/android.toolchain.cmake")?.absolutePath ?: ""}",
@@ -580,14 +579,11 @@ val buildAndroidAll = tasks.register("buildAndroidAll") {
     dependsOn(androidAbiTaskSets.map { it.buildTask })
 }
 
-val packageAndroidAll = tasks.register<Zip>("packageAndroidAll") {
+val packageAndroidAll = tasks.register("packageAndroidAll") {
     group = "distribution"
-    description = "Packages all Android ABI static native dependencies."
+    description = "Packages all Android ABI static native dependencies as separate ABI ZIPs."
     onlyIf { androidEnabled }
-    dependsOn(androidAbiTaskSets.map { it.smokeTask })
-    from(File(stageRoot, androidPackageClassifier))
-    archiveFileName.set("$packagePrefix-$androidPackageClassifier.zip")
-    destinationDirectory.set(packagesDir)
+    dependsOn(androidAbiTaskSets.map { it.packageTask })
 }
 
 val packageAll = tasks.register("packageAll") {

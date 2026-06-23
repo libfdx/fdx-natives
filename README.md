@@ -57,9 +57,10 @@ Android and Web CI toolchain versions are read from `fdx-natives.toml` through
 editing workflow version strings.
 
 Successful `master` builds also publish the package ZIPs and release manifest
-to a date-identifiable GitHub Release tagged like
-`build-YYYYMMDD-HHMMSS-run-N`. Tag pushes matching `v*` publish to the pushed
-tag instead.
+to the GitHub Release for the current package version, tagged like `v0.1.0`.
+The workflow updates that version release in place, so release URLs stay stable
+and package ZIP filenames do not include version numbers or build dates. Tag
+pushes matching `v*` publish to the pushed tag instead.
 
 ## Updating Pins
 
@@ -93,15 +94,12 @@ include/
 cmake/fdx-natives-targets.cmake
 ```
 
-The Android package contains one package root per ABI:
+Android packages are split by ABI. Each Android ZIP has a direct package root:
 
 ```text
-android/arm64-v8a/lib/
-android/arm64-v8a/include/
-android/arm64-v8a/cmake/fdx-natives-targets.cmake
-android/armeabi-v7a/...
-android/x86/...
-android/x86_64/...
+lib/
+include/
+cmake/fdx-natives-targets.cmake
 ```
 
 `writeReleaseManifest` writes `build/packages/fdx-natives-manifest.json` with
