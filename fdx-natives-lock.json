@@ -1,0 +1,19 @@
+{
+  "packageVersion": "0.1.0",
+  "freetype": {
+    "version": "2.14.3",
+    "sha256": "36bc4f1cc413335368ee656c42afca65c5a3987e8768cc28cf11ba775e785a5f"
+  },
+  "dawn": {
+    "repository": "https://dawn.googlesource.com/dawn",
+    "revision": "2f2ebd3da8c8fdbce8fcd8c7ebde76e0ed4f5de5"
+  },
+  "android": {
+    "ndkVersion": "27.0.12077973",
+    "minSdk": "29",
+    "cmakeVersion": "3.22.1"
+  },
+  "web": {
+    "emscriptenVersion": "6.0.0"
+  }
+}

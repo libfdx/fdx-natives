@@ -1,0 +1,46 @@
+set(_fdx_natives_prefix "${CMAKE_CURRENT_LIST_DIR}/..")
+set(_fdx_natives_lib_dir "${_fdx_natives_prefix}/lib")
+set(_fdx_natives_include_dir "${_fdx_natives_prefix}/include")
+
+if(WIN32)
+    file(GLOB _fdx_natives_all_static_libs "${_fdx_natives_lib_dir}/*.lib")
+    set(_fdx_natives_freetype_lib "${_fdx_natives_lib_dir}/fdx_freetype.lib")
+else()
+    file(GLOB _fdx_natives_all_static_libs "${_fdx_natives_lib_dir}/*.a")
+    set(_fdx_natives_freetype_lib "${_fdx_natives_lib_dir}/libfdx_freetype.a")
+endif()
+
+if(NOT EXISTS "${_fdx_natives_freetype_lib}")
+    message(FATAL_ERROR "fdx-natives FreeType library is missing: ${_fdx_natives_freetype_lib}")
+endif()
+if(NOT _fdx_natives_all_static_libs)
+    message(FATAL_ERROR "fdx-natives static libraries are missing under ${_fdx_natives_lib_dir}")
+endif()
+
+add_library(fdx_natives::freetype STATIC IMPORTED)
+set_target_properties(fdx_natives::freetype PROPERTIES
+    IMPORTED_LOCATION "${_fdx_natives_freetype_lib}"
+    INTERFACE_INCLUDE_DIRECTORIES "${_fdx_natives_include_dir}/freetype2")
+
+add_library(fdx_natives::tint INTERFACE IMPORTED)
+set_target_properties(fdx_natives::tint PROPERTIES
+    INTERFACE_INCLUDE_DIRECTORIES "${_fdx_natives_include_dir}/dawn;${_fdx_natives_include_dir}/dawn/include;${_fdx_natives_include_dir}/dawn-gen"
+    INTERFACE_LINK_LIBRARIES "${_fdx_natives_all_static_libs}")
+
+add_library(fdx_natives::tint_api_helpers INTERFACE IMPORTED)
+set_target_properties(fdx_natives::tint_api_helpers PROPERTIES
+    INTERFACE_LINK_LIBRARIES fdx_natives::tint)
+
+add_library(fdx_natives::tint_lang_core_ir_transform INTERFACE IMPORTED)
+set_target_properties(fdx_natives::tint_lang_core_ir_transform PROPERTIES
+    INTERFACE_LINK_LIBRARIES fdx_natives::tint)
+
+add_library(fdx_natives::tint_lang_glsl_writer_helpers INTERFACE IMPORTED)
+set_target_properties(fdx_natives::tint_lang_glsl_writer_helpers PROPERTIES
+    INTERFACE_LINK_LIBRARIES fdx_natives::tint)
+
+unset(_fdx_natives_prefix)
+unset(_fdx_natives_lib_dir)
+unset(_fdx_natives_include_dir)
+unset(_fdx_natives_all_static_libs)
+unset(_fdx_natives_freetype_lib)
