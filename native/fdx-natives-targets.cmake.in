@@ -17,6 +17,12 @@ if(NOT _fdx_natives_all_static_libs)
     message(FATAL_ERROR "fdx-natives static libraries are missing under ${_fdx_natives_lib_dir}")
 endif()
 
+set(_fdx_natives_tint_link_libraries ${_fdx_natives_all_static_libs})
+if((CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang") AND NOT APPLE AND NOT WIN32)
+    list(PREPEND _fdx_natives_tint_link_libraries "-Wl,--start-group")
+    list(APPEND _fdx_natives_tint_link_libraries "-Wl,--end-group")
+endif()
+
 add_library(fdx_natives::freetype STATIC IMPORTED)
 set_target_properties(fdx_natives::freetype PROPERTIES
     IMPORTED_LOCATION "${_fdx_natives_freetype_lib}"
@@ -25,7 +31,7 @@ set_target_properties(fdx_natives::freetype PROPERTIES
 add_library(fdx_natives::tint INTERFACE IMPORTED)
 set_target_properties(fdx_natives::tint PROPERTIES
     INTERFACE_INCLUDE_DIRECTORIES "${_fdx_natives_include_dir}/dawn;${_fdx_natives_include_dir}/dawn/include;${_fdx_natives_include_dir}/dawn-gen"
-    INTERFACE_LINK_LIBRARIES "${_fdx_natives_all_static_libs}")
+    INTERFACE_LINK_LIBRARIES "${_fdx_natives_tint_link_libraries}")
 
 add_library(fdx_natives::tint_api_helpers INTERFACE IMPORTED)
 set_target_properties(fdx_natives::tint_api_helpers PROPERTIES
@@ -43,4 +49,5 @@ unset(_fdx_natives_prefix)
 unset(_fdx_natives_lib_dir)
 unset(_fdx_natives_include_dir)
 unset(_fdx_natives_all_static_libs)
+unset(_fdx_natives_tint_link_libraries)
 unset(_fdx_natives_freetype_lib)
