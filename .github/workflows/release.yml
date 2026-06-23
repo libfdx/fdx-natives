@@ -9,6 +9,7 @@ on:
       - "v*"
 
 permissions:
+  actions: write
   contents: write
 
 concurrency:
@@ -19,8 +20,19 @@ env:
   GRADLE_OPTS: -Dorg.gradle.daemon=false
 
 jobs:
+  cancel-previous:
+    name: Cancel Previous Runs
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.13.1
+        with:
+          access_token: ${{ github.token }}
+
   linux:
     name: Linux x64
+    needs: cancel-previous
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -42,6 +54,7 @@ jobs:
 
   windows:
     name: Windows x64
+    needs: cancel-previous
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v5
@@ -62,6 +75,7 @@ jobs:
 
   macos_x64:
     name: macOS x64
+    needs: cancel-previous
     runs-on: macos-26-intel
     steps:
       - uses: actions/checkout@v5
@@ -79,6 +93,7 @@ jobs:
 
   macos_arm64:
     name: macOS arm64
+    needs: cancel-previous
     runs-on: macos-26
     steps:
       - uses: actions/checkout@v5
@@ -96,6 +111,7 @@ jobs:
 
   android:
     name: Android
+    needs: cancel-previous
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -149,6 +165,7 @@ jobs:
 
   web:
     name: Web Emscripten
+    needs: cancel-previous
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
