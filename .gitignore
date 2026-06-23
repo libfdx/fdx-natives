@@ -1,5 +1,7 @@
 .gradle/
 build/
+.agents/
+.agent/
 .idea/
 *.iml
 local.properties
