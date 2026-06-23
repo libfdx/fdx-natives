@@ -5,8 +5,6 @@ on:
   push:
     branches:
       - master
-    tags:
-      - "v*"
 
 permissions:
   actions: write
@@ -223,6 +221,7 @@ jobs:
       - name: Write release manifest
         run: ./gradlew --no-daemon writeReleaseManifest
       - name: Read package version
+        if: github.event_name == 'workflow_dispatch'
         id: package_version
         shell: bash
         run: |
@@ -240,19 +239,14 @@ jobs:
             build/packages/fdx-natives-manifest.json
           if-no-files-found: error
       - name: Compute release metadata
+        if: github.event_name == 'workflow_dispatch'
         id: release_metadata
         shell: bash
         env:
-          IS_TAG: ${{ startsWith(github.ref, 'refs/tags/') }}
-          REF_NAME: ${{ github.ref_name }}
           PACKAGE_VERSION: ${{ steps.package_version.outputs.version }}
         run: |
           readable_date="$(date -u +'%Y-%m-%d %H:%M:%S UTC')"
-          if [[ "$IS_TAG" == "true" ]]; then
-            tag_name="$REF_NAME"
-          else
-            tag_name="v${PACKAGE_VERSION}"
-          fi
+          tag_name="v${PACKAGE_VERSION}"
           release_name="$tag_name"
           {
             echo "tag_name=$tag_name"
@@ -267,7 +261,7 @@ jobs:
             echo "Workflow run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           } > "$RUNNER_TEMP/fdx-natives-release-notes.md"
       - name: Update version tag
-        if: github.ref == 'refs/heads/master'
+        if: github.event_name == 'workflow_dispatch'
         shell: bash
         env:
           TAG_NAME: ${{ steps.release_metadata.outputs.tag_name }}
@@ -275,7 +269,7 @@ jobs:
           git tag -f "$TAG_NAME" "$GITHUB_SHA"
           git push --force origin "refs/tags/$TAG_NAME"
       - name: Publish GitHub release
-        if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/master'
+        if: github.event_name == 'workflow_dispatch'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.release_metadata.outputs.tag_name }}
