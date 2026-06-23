@@ -3,18 +3,23 @@ name: fdx-natives
 on:
   workflow_dispatch:
   push:
+    branches:
+      - master
     tags:
       - "v*"
 
 permissions:
   contents: write
 
+env:
+  GRADLE_OPTS: -Dorg.gradle.daemon=false
+
 jobs:
   linux:
     name: Linux x64
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v5
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -24,18 +29,18 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential cmake
       - name: Build package
-        run: ./gradlew packageLinuxX64
+        run: ./gradlew --no-daemon packageLinuxX64
       - uses: actions/upload-artifact@v7
         with:
           name: fdx-natives-linux-x64
-          path: build/packages/*.zip
+          path: build/packages/*-linux-x64-gcc.zip
           if-no-files-found: error
 
   windows:
     name: Windows x64
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v5
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -44,89 +49,134 @@ jobs:
         with:
           arch: x64
       - name: Build package
-        run: .\gradlew.bat packageWindowsX64
+        run: .\gradlew.bat --no-daemon packageWindowsX64
       - uses: actions/upload-artifact@v7
         with:
           name: fdx-natives-windows-x64
-          path: build/packages/*.zip
+          path: build/packages/*-windows-x64-msvc.zip
           if-no-files-found: error
 
   macos_x64:
     name: macOS x64
     runs-on: macos-26-intel
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v5
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 25
       - name: Build package
-        run: ./gradlew packageMacosX64
+        run: ./gradlew --no-daemon packageMacosX64
       - uses: actions/upload-artifact@v7
         with:
           name: fdx-natives-macos-x64
-          path: build/packages/*.zip
+          path: build/packages/*-macos-x64-appleclang.zip
           if-no-files-found: error
 
   macos_arm64:
     name: macOS arm64
-    runs-on: macos-latest
+    runs-on: macos-26
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v5
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 25
       - name: Build package
-        run: ./gradlew packageMacosArm64
+        run: ./gradlew --no-daemon packageMacosArm64
       - uses: actions/upload-artifact@v7
         with:
           name: fdx-natives-macos-arm64
-          path: build/packages/*.zip
+          path: build/packages/*-macos-arm64-appleclang.zip
           if-no-files-found: error
 
   android:
     name: Android
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v5
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 25
       - uses: android-actions/setup-android@v4
+      - name: Read Android toolchain pins
+        id: pins
+        shell: bash
+        run: |
+          ndk_version=
+          min_sdk=
+          cmake_version=
+          ./gradlew --no-daemon -q printNativeDepsConfig > "$RUNNER_TEMP/fdx-natives.properties"
+          while IFS='=' read -r key value; do
+            case "$key" in
+              android.ndkVersion) ndk_version="$value" ;;
+              android.minSdk) min_sdk="$value" ;;
+              android.cmakeVersion) cmake_version="$value" ;;
+            esac
+          done < "$RUNNER_TEMP/fdx-natives.properties"
+          if [[ -z "$ndk_version" || -z "$min_sdk" || -z "$cmake_version" ]]; then
+            echo "Missing Android toolchain pin from printNativeDepsConfig." >&2
+            exit 1
+          fi
+          {
+            echo "ndk-version=$ndk_version"
+            echo "min-sdk=$min_sdk"
+            echo "cmake-version=$cmake_version"
+          } >> "$GITHUB_OUTPUT"
       - name: Install Android native toolchain
+        shell: bash
         run: |
           set +o pipefail
           yes | sdkmanager --licenses
           set -o pipefail
-          sdkmanager "platforms;android-36" "ndk;27.0.12077973" "cmake;3.22.1"
+          sdkmanager \
+            "platforms;android-${{ steps.pins.outputs.min-sdk }}" \
+            "ndk;${{ steps.pins.outputs.ndk-version }}" \
+            "cmake;${{ steps.pins.outputs.cmake-version }}"
+          echo "$ANDROID_HOME/cmake/${{ steps.pins.outputs.cmake-version }}/bin" >> "$GITHUB_PATH"
       - name: Build package
-        run: ./gradlew packageAndroidAll
+        run: ./gradlew --no-daemon packageAndroidAll
       - uses: actions/upload-artifact@v7
         with:
           name: fdx-natives-android
-          path: build/packages/*.zip
+          path: build/packages/*-android-ndk*-minsdk*.zip
           if-no-files-found: error
 
   web:
     name: Web Emscripten
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v5
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 25
+      - name: Read Emscripten pin
+        id: pins
+        shell: bash
+        run: |
+          emscripten_version=
+          ./gradlew --no-daemon -q printNativeDepsConfig > "$RUNNER_TEMP/fdx-natives.properties"
+          while IFS='=' read -r key value; do
+            case "$key" in
+              web.emscriptenVersion) emscripten_version="$value" ;;
+            esac
+          done < "$RUNNER_TEMP/fdx-natives.properties"
+          if [[ -z "$emscripten_version" ]]; then
+            echo "Missing Emscripten pin from printNativeDepsConfig." >&2
+            exit 1
+          fi
+          echo "emscripten-version=$emscripten_version" >> "$GITHUB_OUTPUT"
       - uses: mymindstorm/setup-emsdk@v16
         with:
-          version: "6.0.0"
+          version: ${{ steps.pins.outputs.emscripten-version }}
       - name: Build package
-        run: ./gradlew packageWeb
+        run: ./gradlew --no-daemon packageWeb
       - uses: actions/upload-artifact@v7
         with:
           name: fdx-natives-web
-          path: build/packages/*.zip
+          path: build/packages/*-web-emscripten-*.zip
           if-no-files-found: error
 
   release:
@@ -140,7 +190,7 @@ jobs:
       - android
       - web
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v5
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -150,7 +200,7 @@ jobs:
           path: build/packages
           merge-multiple: true
       - name: Write release manifest
-        run: ./gradlew writeReleaseManifest
+        run: ./gradlew --no-daemon writeReleaseManifest
       - uses: actions/upload-artifact@v7
         with:
           name: fdx-natives-release

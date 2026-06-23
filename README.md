@@ -45,6 +45,20 @@ target. Android packaging requires `ANDROID_NDK_HOME`, or `ANDROID_HOME` /
 `ANDROID_SDK_ROOT` with the configured NDK installed. Web packaging requires
 `emcmake` on `PATH`.
 
+## Continuous Integration
+
+The `fdx-natives` GitHub Actions workflow builds the supported native package
+jobs on `master` pushes, tag pushes, and manual dispatches. Each platform job
+uploads its package ZIP, and the final `fdx-natives-release` artifact contains
+all package ZIPs plus `fdx-natives-manifest.json`.
+
+Android and Web CI toolchain versions are read from `fdx-natives.toml` through
+`printNativeDepsConfig`; update those pins with `updateToolchainPin` instead of
+editing workflow version strings.
+
+Tag pushes matching `v*` also publish the package ZIPs and release manifest to a
+GitHub Release.
+
 ## Updating Pins
 
 ```bash
